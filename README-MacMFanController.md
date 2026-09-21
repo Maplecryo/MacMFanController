@@ -68,6 +68,7 @@ Each rule has:
 - a temperature threshold
 - a preset dropdown
 - an optional RPM field
+- a mode label showing whether the rule is using the preset percentage or the RPM override
 
 If the RPM field is filled in, the app uses that RPM instead of the preset. Repeated triggers at the same output are ignored so the app does not keep sending the same fan command every poll.
 

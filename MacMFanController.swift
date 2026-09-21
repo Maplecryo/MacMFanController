@@ -408,7 +408,7 @@ struct MenuContentView: View {
             footer
         }
         .padding(14)
-        .frame(width: 420)
+        .frame(width: 470)
     }
 
     private var header: some View {
@@ -555,9 +555,13 @@ struct MenuContentView: View {
             }
             .labelsHidden()
             .frame(width: 74)
-            TextField("RPM", text: rpmText)
+            TextField("RPM override", text: rpmText)
                 .textFieldStyle(.roundedBorder)
-                .frame(width: 70)
+                .frame(width: 92)
+            Text(rpmText.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "uses %" : "uses RPM")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 58, alignment: .leading)
         }
         .disabled(!controller.rulesEnabled)
     }
