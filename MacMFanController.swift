@@ -466,7 +466,7 @@ struct MenuContentView: View {
             footer
         }
         .padding(14)
-        .frame(width: 470)
+        .frame(width: 360)
     }
 
     private var header: some View {
@@ -535,15 +535,15 @@ struct MenuContentView: View {
     }
 
     private func manualRPMRow(title: String, rpm: Binding<Int>, action: @escaping () -> Void) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .frame(width: 86, alignment: .leading)
+                .frame(width: 80, alignment: .leading)
             Stepper(value: rpm, in: minRPM...maxRPM, step: 100) {
                 Text("\(rpm.wrappedValue) RPM")
                     .font(.system(.body, design: .monospaced))
-                    .frame(width: 92, alignment: .leading)
+                    .frame(width: 86, alignment: .leading)
             }
             Button("Apply") {
                 action()
@@ -601,41 +601,50 @@ struct MenuContentView: View {
         preset: Binding<FanPreset>,
         rpmText: Binding<String>
     ) -> some View {
-        HStack(spacing: 8) {
-            Toggle(label, isOn: enabled)
-                .frame(width: 78, alignment: .leading)
-            Stepper(value: threshold, in: 20...120, step: 1) {
-                Text(">\(threshold.wrappedValue)C")
-                    .font(.system(.body, design: .monospaced))
-                    .frame(width: 56, alignment: .leading)
-            }
-            .onChange(of: threshold.wrappedValue) { _, newValue in
-                thresholdText.wrappedValue = "\(newValue)"
-            }
-            TextField("Temp", text: thresholdText)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 52)
-                .onSubmit {
-                    threshold.wrappedValue = FanController.clampedTemperature(
-                        thresholdText.wrappedValue,
-                        fallback: threshold.wrappedValue
-                    )
-                    thresholdText.wrappedValue = "\(threshold.wrappedValue)"
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Toggle(label, isOn: enabled)
+                    .frame(width: 92, alignment: .leading)
+                Stepper(value: threshold, in: 20...120, step: 1) {
+                    Text(">\(threshold.wrappedValue)C")
+                        .font(.system(.body, design: .monospaced))
+                        .frame(width: 56, alignment: .leading)
                 }
-            Picker("Fans", selection: preset) {
-                ForEach(FanPreset.allCases) { preset in
-                    Text(preset.rawValue).tag(preset)
+                .onChange(of: threshold.wrappedValue) { _, newValue in
+                    thresholdText.wrappedValue = "\(newValue)"
                 }
+                TextField("Temp", text: thresholdText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 54)
+                    .onSubmit {
+                        threshold.wrappedValue = FanController.clampedTemperature(
+                            thresholdText.wrappedValue,
+                            fallback: threshold.wrappedValue
+                        )
+                        thresholdText.wrappedValue = "\(threshold.wrappedValue)"
+                    }
             }
-            .labelsHidden()
-            .frame(width: 74)
-            TextField("RPM override", text: rpmText)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 92)
-            Text(rpmText.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "uses %" : "uses RPM")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 58, alignment: .leading)
+
+            HStack(spacing: 8) {
+                Text("Output")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 92, alignment: .leading)
+                Picker("Preset", selection: preset) {
+                    ForEach(FanPreset.allCases) { preset in
+                        Text(preset.rawValue).tag(preset)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 86)
+                TextField("RPM", text: rpmText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 74)
+                Text(rpmText.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "uses %" : "uses RPM")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 64, alignment: .leading)
+            }
         }
         .disabled(!controller.rulesEnabled)
     }
