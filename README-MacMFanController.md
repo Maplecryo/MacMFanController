@@ -8,7 +8,7 @@ The app is named for M-series Macs because its backend and sensor parsing are bu
 
 - Menu bar app with no Dock window.
 - Fan presets: `20%`, `40%`, `50%`, `80%`, and `MAX`.
-- Manual RPM controls for synced fans or independent fan `0` / fan `1` control.
+- Typed manual RPM controls for synced fans or independent fan `0` / fan `1` control.
 - One-click `Reset to Auto`.
 - Live polling through `smctl sensors`.
 - Temperature display for:
@@ -56,7 +56,7 @@ The app appears as a fan item in the macOS menu bar.
 
 `Independent` exposes separate controls for fan `0` and fan `1`. If your Mac only has one fan, fan `1` commands may fail or be ignored by `smctl`.
 
-Manual RPM values are clamped to `1200` through `7000`.
+Manual RPM values are typed directly and clamped to `1200` through `7000` when applied.
 
 ## Auto Rules
 

@@ -69,9 +69,9 @@ final class FanController: ObservableObject {
     @Published var fanMode: FanMode = .synced
     @Published var fan0Preset: FanPreset = .p40
     @Published var fan1Preset: FanPreset = .p40
-    @Published var manualRPM = 2500
-    @Published var manualFan0RPM = 2500
-    @Published var manualFan1RPM = 2500
+    @Published var manualRPMText = "2500"
+    @Published var manualFan0RPMText = "2500"
+    @Published var manualFan1RPMText = "2500"
     @Published var temperatures = Temperatures()
     @Published var rulesEnabled = false
     @Published var gpuRuleEnabled = true
@@ -136,22 +136,22 @@ final class FanController: ObservableObject {
 
     func applyManualSyncedRPM() {
         fanMode = .synced
-        let rpm = clampedRPM(manualRPM)
-        manualRPM = rpm
+        let rpm = Self.clampedRPM(manualRPMText, fallback: 2500)
+        manualRPMText = "\(rpm)"
         runRPMCommand(rpm: rpm, fan: "all", reason: "Manual synced RPM")
     }
 
     func applyManualFan0RPM() {
         fanMode = .independent
-        let rpm = clampedRPM(manualFan0RPM)
-        manualFan0RPM = rpm
+        let rpm = Self.clampedRPM(manualFan0RPMText, fallback: 2500)
+        manualFan0RPMText = "\(rpm)"
         runRPMCommand(rpm: rpm, fan: "0", reason: "Manual fan 0 RPM")
     }
 
     func applyManualFan1RPM() {
         fanMode = .independent
-        let rpm = clampedRPM(manualFan1RPM)
-        manualFan1RPM = rpm
+        let rpm = Self.clampedRPM(manualFan1RPMText, fallback: 2500)
+        manualFan1RPMText = "\(rpm)"
         runRPMCommand(rpm: rpm, fan: "1", reason: "Manual fan 1 RPM")
     }
 
@@ -213,8 +213,12 @@ final class FanController: ObservableObject {
         runAsync(args, label: "\(reason) (\(rpm) RPM)")
     }
 
-    private func clampedRPM(_ rpm: Int) -> Int {
-        max(minRPM, min(maxRPM, rpm))
+    nonisolated static func clampedRPM(_ text: String, fallback: Int) -> Int {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let rpm = Int(trimmed) else {
+            return max(minRPM, min(maxRPM, fallback))
+        }
+        return max(minRPM, min(maxRPM, rpm))
     }
 
     private func evaluateRules() {
@@ -492,20 +496,20 @@ struct MenuContentView: View {
                 presetRow(title: "Both fans") { preset in
                     controller.applySyncedPreset(preset)
                 }
-                manualRPMRow(title: "Manual RPM", rpm: $controller.manualRPM) {
+                manualRPMRow(title: "Manual RPM", rpmText: $controller.manualRPMText) {
                     controller.applyManualSyncedRPM()
                 }
             } else {
                 presetRow(title: "Fan 0") { preset in
                     controller.applyFan0Preset(preset)
                 }
-                manualRPMRow(title: "Fan 0 RPM", rpm: $controller.manualFan0RPM) {
+                manualRPMRow(title: "Fan 0 RPM", rpmText: $controller.manualFan0RPMText) {
                     controller.applyManualFan0RPM()
                 }
                 presetRow(title: "Fan 1") { preset in
                     controller.applyFan1Preset(preset)
                 }
-                manualRPMRow(title: "Fan 1 RPM", rpm: $controller.manualFan1RPM) {
+                manualRPMRow(title: "Fan 1 RPM", rpmText: $controller.manualFan1RPMText) {
                     controller.applyManualFan1RPM()
                 }
             }
@@ -534,17 +538,15 @@ struct MenuContentView: View {
         }
     }
 
-    private func manualRPMRow(title: String, rpm: Binding<Int>, action: @escaping () -> Void) -> some View {
+    private func manualRPMRow(title: String, rpmText: Binding<String>, action: @escaping () -> Void) -> some View {
         HStack(spacing: 6) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(width: 80, alignment: .leading)
-            Stepper(value: rpm, in: minRPM...maxRPM, step: 100) {
-                Text("\(rpm.wrappedValue) RPM")
-                    .font(.system(.body, design: .monospaced))
-                    .frame(width: 86, alignment: .leading)
-            }
+            TextField("RPM", text: rpmText)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 86)
             Button("Apply") {
                 action()
             }

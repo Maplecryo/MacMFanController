@@ -57,6 +57,14 @@ func clampedTemperature(_ text: String, fallback: Int) -> Int {
     return max(20, min(120, value))
 }
 
+func clampedRPM(_ text: String, fallback: Int) -> Int {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let value = Int(trimmed) else {
+        return max(minRPM, min(maxRPM, fallback))
+    }
+    return max(minRPM, min(maxRPM, value))
+}
+
 func ruleDecision(temperatures: Temperatures, gpu: RuleConfig, cpu: RuleConfig) -> RuleDecision? {
     if gpu.enabled, let value = temperatures.gpuProximity, value > Double(gpu.threshold) {
         return RuleDecision(
@@ -119,6 +127,8 @@ assertEqual(rpmOverride?.rpm, 4200, "manual RPM override wins")
 
 assertEqual(ruleRPM(preset: .p40, rpmText: "9999"), maxRPM, "manual RPM clamps high")
 assertEqual(ruleRPM(preset: .p40, rpmText: "10"), minRPM, "manual RPM clamps low")
+assertEqual(clampedRPM("3600", fallback: 2500), 3600, "manual fan RPM accepts typed value")
+assertEqual(clampedRPM("oops", fallback: 2500), 2500, "bad manual fan RPM keeps fallback")
 assertEqual(clampedTemperature("140", fallback: 70), 120, "temperature clamps high")
 assertEqual(clampedTemperature("oops", fallback: 70), 70, "bad temperature keeps fallback")
 
