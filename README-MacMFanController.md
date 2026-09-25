@@ -16,7 +16,7 @@ The app is named for M-series Macs because its backend and sensor parsing are bu
   - GPU Proximity, from `Tg0P`
 - Auto-trigger rules for GPU and CPU Die:
   - enable or disable each rule
-  - edit the trigger temperature
+  - edit the trigger temperature with either the stepper or the `Temp` field
   - choose a preset
   - optionally type an exact RPM override
 
@@ -65,7 +65,7 @@ Auto rules are evaluated every 5 seconds after fresh sensor data is read.
 Each rule has:
 
 - an enable switch
-- a temperature threshold
+- a temperature threshold stepper and editable `Temp` field
 - a preset dropdown
 - an optional RPM field
 - a mode label showing whether the rule is using the preset percentage or the RPM override
@@ -85,6 +85,12 @@ The app bundle expects this executable:
 
 ```text
 MacMFanController.app/Contents/MacOS/MacMFanController
+```
+
+Run the rule logic tests:
+
+```bash
+CLANG_MODULE_CACHE_PATH=/tmp swift Tests/RuleLogicTests.swift
 ```
 
 ## Safety

@@ -48,6 +48,19 @@ struct CommandResult {
     let output: String
 }
 
+struct RuleDecision {
+    let preset: FanPreset
+    let rpm: Int
+    let reason: String
+}
+
+struct RuleConfig {
+    let enabled: Bool
+    let threshold: Int
+    let preset: FanPreset
+    let rpmText: String
+}
+
 @MainActor
 final class FanController: ObservableObject {
     @Published var backendText = "Checking backend..."
@@ -65,6 +78,8 @@ final class FanController: ObservableObject {
     @Published var cpuRuleEnabled = false
     @Published var gpuRuleThreshold = 70
     @Published var cpuRuleThreshold = 90
+    @Published var gpuRuleThresholdText = "70"
+    @Published var cpuRuleThresholdText = "90"
     @Published var gpuRulePreset: FanPreset = .p50
     @Published var cpuRulePreset: FanPreset = .max
     @Published var gpuRuleRPM = ""
@@ -204,42 +219,85 @@ final class FanController: ObservableObject {
 
     private func evaluateRules() {
         guard rulesEnabled else { return }
+        syncRuleThresholdsFromText()
 
-        if gpuRuleEnabled, let gpu = temperatures.gpuProximity, gpu > Double(gpuRuleThreshold) {
-            triggerRule(
+        let decision = Self.ruleDecision(
+            temperatures: temperatures,
+            gpu: RuleConfig(
+                enabled: gpuRuleEnabled,
+                threshold: gpuRuleThreshold,
                 preset: gpuRulePreset,
-                rpmText: gpuRuleRPM,
-                reason: "GPU Temp > \(gpuRuleThreshold)C"
-            )
-            return
-        }
-        if cpuRuleEnabled, let cpu = temperatures.cpuDie, cpu > Double(cpuRuleThreshold) {
-            triggerRule(
+                rpmText: gpuRuleRPM
+            ),
+            cpu: RuleConfig(
+                enabled: cpuRuleEnabled,
+                threshold: cpuRuleThreshold,
                 preset: cpuRulePreset,
-                rpmText: cpuRuleRPM,
-                reason: "CPU Die > \(cpuRuleThreshold)C"
+                rpmText: cpuRuleRPM
             )
+        )
+
+        if let decision {
+            triggerRule(decision)
         }
     }
 
-    private func triggerRule(preset: FanPreset, rpmText: String, reason: String) {
-        let rpm = ruleRPM(preset: preset, rpmText: rpmText)
-        guard lastRulePreset != preset || lastRuleRPM != rpm else { return }
-        lastRulePreset = preset
-        lastRuleRPM = rpm
+    private func triggerRule(_ decision: RuleDecision) {
+        guard lastRulePreset != decision.preset || lastRuleRPM != decision.rpm else { return }
+        lastRulePreset = decision.preset
+        lastRuleRPM = decision.rpm
         fanMode = .synced
-        fan0Preset = preset
-        fan1Preset = preset
-        lastRuleText = "\(reason) -> fans \(rpm) RPM"
-        runRPMCommand(rpm: rpm, fan: "all", reason: "Auto rule")
+        fan0Preset = decision.preset
+        fan1Preset = decision.preset
+        lastRuleText = "\(decision.reason) -> fans \(decision.rpm) RPM"
+        runRPMCommand(rpm: decision.rpm, fan: "all", reason: "Auto rule")
     }
 
-    private func ruleRPM(preset: FanPreset, rpmText: String) -> Int {
+    private func syncRuleThresholdsFromText() {
+        gpuRuleThreshold = Self.clampedTemperature(gpuRuleThresholdText, fallback: gpuRuleThreshold)
+        cpuRuleThreshold = Self.clampedTemperature(cpuRuleThresholdText, fallback: cpuRuleThreshold)
+        gpuRuleThresholdText = "\(gpuRuleThreshold)"
+        cpuRuleThresholdText = "\(cpuRuleThreshold)"
+    }
+
+    nonisolated static func ruleDecision(
+        temperatures: Temperatures,
+        gpu: RuleConfig,
+        cpu: RuleConfig
+    ) -> RuleDecision? {
+        if gpu.enabled, let value = temperatures.gpuProximity, value > Double(gpu.threshold) {
+            return RuleDecision(
+                preset: gpu.preset,
+                rpm: ruleRPM(preset: gpu.preset, rpmText: gpu.rpmText),
+                reason: "GPU Temp > \(gpu.threshold)C"
+            )
+        }
+
+        if cpu.enabled, let value = temperatures.cpuDie, value > Double(cpu.threshold) {
+            return RuleDecision(
+                preset: cpu.preset,
+                rpm: ruleRPM(preset: cpu.preset, rpmText: cpu.rpmText),
+                reason: "CPU Die > \(cpu.threshold)C"
+            )
+        }
+
+        return nil
+    }
+
+    nonisolated static func ruleRPM(preset: FanPreset, rpmText: String) -> Int {
         let trimmed = rpmText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let rpm = Int(trimmed) else {
             return preset.rpm
         }
-        return clampedRPM(rpm)
+        return max(minRPM, min(maxRPM, rpm))
+    }
+
+    nonisolated static func clampedTemperature(_ text: String, fallback: Int) -> Int {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Int(trimmed) else {
+            return fallback
+        }
+        return max(20, min(120, value))
     }
 
     private func runAsync(_ args: [String], fallback: [String]? = nil, label: String) {
@@ -517,6 +575,7 @@ struct MenuContentView: View {
                 label: "GPU",
                 enabled: $controller.gpuRuleEnabled,
                 threshold: $controller.gpuRuleThreshold,
+                thresholdText: $controller.gpuRuleThresholdText,
                 preset: $controller.gpuRulePreset,
                 rpmText: $controller.gpuRuleRPM
             )
@@ -524,6 +583,7 @@ struct MenuContentView: View {
                 label: "CPU Die",
                 enabled: $controller.cpuRuleEnabled,
                 threshold: $controller.cpuRuleThreshold,
+                thresholdText: $controller.cpuRuleThresholdText,
                 preset: $controller.cpuRulePreset,
                 rpmText: $controller.cpuRuleRPM
             )
@@ -537,6 +597,7 @@ struct MenuContentView: View {
         label: String,
         enabled: Binding<Bool>,
         threshold: Binding<Int>,
+        thresholdText: Binding<String>,
         preset: Binding<FanPreset>,
         rpmText: Binding<String>
     ) -> some View {
@@ -548,6 +609,19 @@ struct MenuContentView: View {
                     .font(.system(.body, design: .monospaced))
                     .frame(width: 56, alignment: .leading)
             }
+            .onChange(of: threshold.wrappedValue) { _, newValue in
+                thresholdText.wrappedValue = "\(newValue)"
+            }
+            TextField("Temp", text: thresholdText)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 52)
+                .onSubmit {
+                    threshold.wrappedValue = FanController.clampedTemperature(
+                        thresholdText.wrappedValue,
+                        fallback: threshold.wrappedValue
+                    )
+                    thresholdText.wrappedValue = "\(threshold.wrappedValue)"
+                }
             Picker("Fans", selection: preset) {
                 ForEach(FanPreset.allCases) { preset in
                     Text(preset.rawValue).tag(preset)
