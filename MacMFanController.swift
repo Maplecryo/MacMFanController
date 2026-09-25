@@ -605,17 +605,12 @@ struct MenuContentView: View {
             HStack(spacing: 8) {
                 Toggle(label, isOn: enabled)
                     .frame(width: 92, alignment: .leading)
-                Stepper(value: threshold, in: 20...120, step: 1) {
-                    Text(">\(threshold.wrappedValue)C")
-                        .font(.system(.body, design: .monospaced))
-                        .frame(width: 56, alignment: .leading)
-                }
-                .onChange(of: threshold.wrappedValue) { _, newValue in
-                    thresholdText.wrappedValue = "\(newValue)"
-                }
+                Text("Trigger >")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 TextField("Temp", text: thresholdText)
                     .textFieldStyle(.roundedBorder)
-                    .frame(width: 54)
+                    .frame(width: 56)
                     .onSubmit {
                         threshold.wrappedValue = FanController.clampedTemperature(
                             thresholdText.wrappedValue,
@@ -623,6 +618,9 @@ struct MenuContentView: View {
                         )
                         thresholdText.wrappedValue = "\(threshold.wrappedValue)"
                     }
+                Text("C")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             HStack(spacing: 8) {
