@@ -79,11 +79,12 @@ If the RPM field is filled in, the app uses that RPM instead of the preset. Repe
 From this folder:
 
 ```bash
-xcrun swiftc -O -parse-as-library MacMFanController.swift \
-  -o MacMFanController.app/Contents/MacOS/MacMFanController
+./build.sh
 ```
 
-The app bundle expects this executable:
+The script builds the arm64 executable, removes Finder metadata that can block signing, and applies an ad-hoc signature for local use. A public distribution should replace that signature with the distributor's Developer ID signing and notarization process.
+
+The app bundle contains the executable at:
 
 ```text
 MacMFanController.app/Contents/MacOS/MacMFanController

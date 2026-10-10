@@ -1,0 +1,19 @@
+name: macOS build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run rule tests
+        run: |
+          swift Tests/RuleLogicTests.swift
+          swift Tests/AutoRuleTests.swift
+      - name: Build app
+        run: ./build.sh
+      - name: Verify app bundle
+        run: codesign --verify --deep --strict MacMFanController.app
