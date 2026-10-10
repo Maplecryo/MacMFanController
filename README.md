@@ -43,7 +43,13 @@ smctl sensors
 
 ## Running
 
-Double-click:
+For the easiest setup, download the project folder or release archive, keep `Install.command` next to `MacMFanController.app`, and double-click `Install.command`. It copies the app to `/Applications`, installs the `smctl` backend when Homebrew is already installed, configures its service, and launches the app.
+
+If Homebrew is not installed, the installer opens the official Homebrew website. Install Homebrew, then double-click `Install.command` again.
+
+You may be asked for your Mac login password while the backend service is configured. This is required by `smctl` and macOS; the app itself does not collect or store the password.
+
+To launch manually after installation:
 
 ```text
 MacMFanController.app
