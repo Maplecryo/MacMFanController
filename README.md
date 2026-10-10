@@ -10,7 +10,7 @@ The app is named for M-series Macs because its backend and sensor parsing are bu
 - Fan presets: `20%`, `40%`, `50%`, `80%`, and `MAX`.
 - Typed manual RPM controls for synced fans or independent fan `0` / fan `1` control.
 - One-click `Reset to Auto`.
-- Confirmed quiet manual mode that pauses this app's auto-trigger rules.
+- Confirmed manual mode that pauses this app's auto-trigger rules.
 - Live polling through `smctl sensors`.
 - Temperature display for:
   - CPU Die, from keys such as `Tp0D` or `TC0D`
@@ -59,7 +59,7 @@ The app appears as a fan item in the macOS menu bar.
 
 Manual RPM values are typed directly and clamped to `1200` through `7000` when applied.
 
-`Quiet manual mode` pauses this app's auto-trigger rules after confirmation. It does not disable macOS or firmware thermal protection.
+`Pause app auto-rules` pauses this app's auto-trigger rules after an inline confirmation. Manual fan settings remain available. It does not disable macOS or firmware thermal protection.
 
 ## Auto Rules
 

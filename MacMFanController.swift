@@ -209,14 +209,15 @@ final class FanController: ObservableObject {
             showQuietModeConfirm = true
         } else {
             quietManualMode = false
-            lastRuleText = "Quiet manual mode disabled."
+            lastRuleText = "App auto-rules resumed."
         }
     }
 
     func confirmQuietManualMode() {
         quietManualMode = true
         rulesEnabled = false
-        lastRuleText = "Quiet manual mode: app auto-rules are paused."
+        showQuietModeConfirm = false
+        lastRuleText = "App auto-rules paused."
     }
 
     private func runFanCommand(preset: FanPreset, fan: String, reason: String) {
@@ -241,7 +242,7 @@ final class FanController: ObservableObject {
 
     private func evaluateRules() {
         guard !quietManualMode else {
-            lastRuleText = "Quiet manual mode: app auto-rules are paused."
+            lastRuleText = "App auto-rules paused."
             return
         }
         guard rulesEnabled else { return }
@@ -543,25 +544,36 @@ struct MenuContentView: View {
             .disabled(controller.isRunning)
 
             Toggle(
-                "Quiet manual mode",
+                "Pause app auto-rules",
                 isOn: Binding(
                     get: { controller.quietManualMode },
                     set: { controller.requestQuietManualMode($0) }
                 )
             )
-            Text("Pauses this app's auto-rules. macOS thermal protection may still override fan control.")
+            Text("Manual fan settings stay in control while this app's rules are paused. macOS and firmware thermal protection remain active.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-        }
-        .alert("Enable quiet manual mode?", isPresented: $controller.showQuietModeConfirm) {
-            Button("Cancel", role: .cancel) {
-                controller.quietManualMode = false
+            if controller.showQuietModeConfirm {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Pause the app's automatic fan rules?")
+                        .font(.caption.weight(.semibold))
+                    Text("This does not disable macOS or firmware thermal protection.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        Button("Cancel") {
+                            controller.showQuietModeConfirm = false
+                        }
+                        Button("Confirm pause") {
+                            controller.confirmQuietManualMode()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+                .padding(8)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
-            Button("Enable") {
-                controller.confirmQuietManualMode()
-            }
-        } message: {
-            Text("This only pauses this app's auto-trigger rules. It does not and cannot disable macOS or firmware thermal protection.")
         }
     }
 
