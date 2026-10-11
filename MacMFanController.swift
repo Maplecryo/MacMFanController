@@ -49,7 +49,6 @@ struct CommandResult {
 }
 
 struct RuleDecision {
-    let preset: FanPreset
     let rpm: Int
     let reason: String
 }
@@ -57,8 +56,8 @@ struct RuleDecision {
 struct RuleConfig {
     let enabled: Bool
     let threshold: Int
-    let preset: FanPreset
     let rpmText: String
+    let fallbackRPM: Int
 }
 
 @MainActor
@@ -81,10 +80,8 @@ final class FanController: ObservableObject {
     @Published var cpuRuleThreshold = 90
     @Published var gpuRuleThresholdText = "70"
     @Published var cpuRuleThresholdText = "90"
-    @Published var gpuRulePreset: FanPreset = .p50
-    @Published var cpuRulePreset: FanPreset = .max
-    @Published var gpuRuleRPM = ""
-    @Published var cpuRuleRPM = ""
+    @Published var gpuRuleRPM = "4100"
+    @Published var cpuRuleRPM = "7000"
     @Published var lastRuleText = "No rule triggered yet."
     @Published var menuTitle = "Fan"
 
@@ -92,7 +89,6 @@ final class FanController: ObservableObject {
     private let worker = DispatchQueue(label: "com.maplecryo.MacMFanController.smctl", qos: .userInitiated)
     private let outputLimit = 64 * 1024
     private var pollTimer: Timer?
-    private var lastRulePreset: FanPreset?
     private var lastRuleRPM: Int?
 
     init() {
@@ -158,7 +154,6 @@ final class FanController: ObservableObject {
 
     func restoreAuto() {
         runAsync(["fan", "profile", "auto"], label: "Restore Auto")
-        lastRulePreset = nil
         lastRuleRPM = nil
         lastRuleText = "Automatic fan control restored."
     }
@@ -234,14 +229,14 @@ final class FanController: ObservableObject {
             gpu: RuleConfig(
                 enabled: gpuRuleEnabled,
                 threshold: gpuRuleThreshold,
-                preset: gpuRulePreset,
-                rpmText: gpuRuleRPM
+                rpmText: gpuRuleRPM,
+                fallbackRPM: 4100
             ),
             cpu: RuleConfig(
                 enabled: cpuRuleEnabled,
                 threshold: cpuRuleThreshold,
-                preset: cpuRulePreset,
-                rpmText: cpuRuleRPM
+                rpmText: cpuRuleRPM,
+                fallbackRPM: 7000
             )
         )
 
@@ -251,12 +246,9 @@ final class FanController: ObservableObject {
     }
 
     private func triggerRule(_ decision: RuleDecision) {
-        guard lastRulePreset != decision.preset || lastRuleRPM != decision.rpm else { return }
-        lastRulePreset = decision.preset
+        guard lastRuleRPM != decision.rpm else { return }
         lastRuleRPM = decision.rpm
         fanMode = .synced
-        fan0Preset = decision.preset
-        fan1Preset = decision.preset
         lastRuleText = "\(decision.reason) -> fans \(decision.rpm) RPM"
         runRPMCommand(rpm: decision.rpm, fan: "all", reason: "Auto rule")
     }
@@ -275,16 +267,14 @@ final class FanController: ObservableObject {
     ) -> RuleDecision? {
         if gpu.enabled, let value = temperatures.gpuProximity, value > Double(gpu.threshold) {
             return RuleDecision(
-                preset: gpu.preset,
-                rpm: ruleRPM(preset: gpu.preset, rpmText: gpu.rpmText),
+                rpm: ruleRPM(rpmText: gpu.rpmText, fallback: gpu.fallbackRPM),
                 reason: "GPU Temp > \(gpu.threshold)C"
             )
         }
 
         if cpu.enabled, let value = temperatures.cpuDie, value > Double(cpu.threshold) {
             return RuleDecision(
-                preset: cpu.preset,
-                rpm: ruleRPM(preset: cpu.preset, rpmText: cpu.rpmText),
+                rpm: ruleRPM(rpmText: cpu.rpmText, fallback: cpu.fallbackRPM),
                 reason: "CPU Die > \(cpu.threshold)C"
             )
         }
@@ -292,10 +282,10 @@ final class FanController: ObservableObject {
         return nil
     }
 
-    nonisolated static func ruleRPM(preset: FanPreset, rpmText: String) -> Int {
+    nonisolated static func ruleRPM(rpmText: String, fallback: Int) -> Int {
         let trimmed = rpmText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let rpm = Int(trimmed) else {
-            return preset.rpm
+            return max(minRPM, min(maxRPM, fallback))
         }
         return max(minRPM, min(maxRPM, rpm))
     }
@@ -671,7 +661,6 @@ struct MenuContentView: View {
                 enabled: $controller.gpuRuleEnabled,
                 threshold: $controller.gpuRuleThreshold,
                 thresholdText: $controller.gpuRuleThresholdText,
-                preset: $controller.gpuRulePreset,
                 rpmText: $controller.gpuRuleRPM
             )
             ruleRow(
@@ -679,7 +668,6 @@ struct MenuContentView: View {
                 enabled: $controller.cpuRuleEnabled,
                 threshold: $controller.cpuRuleThreshold,
                 thresholdText: $controller.cpuRuleThresholdText,
-                preset: $controller.cpuRulePreset,
                 rpmText: $controller.cpuRuleRPM
             )
             Text(controller.lastRuleText)
@@ -693,7 +681,6 @@ struct MenuContentView: View {
         enabled: Binding<Bool>,
         threshold: Binding<Int>,
         thresholdText: Binding<String>,
-        preset: Binding<FanPreset>,
         rpmText: Binding<String>
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -719,24 +706,20 @@ struct MenuContentView: View {
             }
 
             HStack(spacing: 8) {
-                Text("Output")
+                Text("Output RPM")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(width: 92, alignment: .leading)
-                Picker("Preset", selection: preset) {
-                    ForEach(FanPreset.allCases) { preset in
-                        Text(preset.rawValue).tag(preset)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 86)
                 TextField("RPM", text: rpmText)
                     .textFieldStyle(.roundedBorder)
-                    .frame(width: 74)
-                Text(rpmText.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "uses %" : "uses RPM")
+                    .frame(width: 100)
+                    .onSubmit {
+                        rpmText.wrappedValue = "\(FanController.clampedRPM(rpmText.wrappedValue, fallback: 2500))"
+                    }
+                Text("1200-7000")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .frame(width: 64, alignment: .leading)
+                    .frame(width: 70, alignment: .leading)
             }
         }
         .disabled(!controller.rulesEnabled)
