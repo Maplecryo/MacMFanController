@@ -507,6 +507,8 @@ struct MenuContentView: View {
             Text(controller.backendText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -584,11 +586,12 @@ struct MenuContentView: View {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            HStack(spacing: 6) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 54), spacing: 6)], spacing: 6) {
                 ForEach(FanPreset.allCases) { preset in
                     Button(preset.rawValue) {
                         action(preset)
                     }
+                    .frame(maxWidth: .infinity)
                     .disabled(controller.isRunning)
                 }
             }
@@ -606,10 +609,12 @@ struct MenuContentView: View {
             Button(title, action: action)
                 .buttonStyle(.borderedProminent)
                 .disabled(disabled)
+                .frame(maxWidth: .infinity)
         } else {
             Button(title, action: action)
                 .buttonStyle(.bordered)
                 .disabled(disabled)
+                .frame(maxWidth: .infinity)
         }
     }
 
@@ -740,6 +745,7 @@ struct MenuContentView: View {
             Text(controller.statusText)
                 .font(.system(.caption, design: .monospaced))
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         }
         .frame(height: 110)
