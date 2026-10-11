@@ -60,7 +60,7 @@ The app appears as a fan item in the macOS menu bar.
 
 `Sync both fans` applies a preset or manual RPM to all available fans.
 
-`Independent` exposes separate controls for fan `0` and fan `1`. If your Mac only has one fan, fan `1` commands may fail or be ignored by `smctl`.
+`Independent` exposes separate controls for fan `0` and fan `1` when both are detected. Macs with one physical fan show fan `1` as unavailable and keep the usable fan `0` controls visible.
 
 Manual RPM values are typed directly and clamped to `1200` through `7000` when applied.
 

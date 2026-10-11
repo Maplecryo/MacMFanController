@@ -72,6 +72,7 @@ final class FanController: ObservableObject {
     @Published var manualRPMText = "2500"
     @Published var manualFan0RPMText = "2500"
     @Published var manualFan1RPMText = "2500"
+    @Published var availableFanCount = 1
     @Published var temperatures = Temperatures()
     @Published var rulesEnabled = false
     @Published var gpuRuleEnabled = true
@@ -188,6 +189,7 @@ final class FanController: ObservableObject {
 
             DispatchQueue.main.async {
                 self.temperatures = temps
+                self.availableFanCount = Self.parseFanCount(joined)
                 self.menuTitle = temps.menuTitle
                 if !joined.isEmpty {
                     self.statusText = Self.formatTemps(temps) + "\n\n" + Self.truncate(joined, limit: 4000)
@@ -387,6 +389,26 @@ final class FanController: ObservableObject {
         return temps
     }
 
+    nonisolated private static func parseFanCount(_ text: String) -> Int {
+        if let jsonText = jsonSubstring(from: text),
+           let data = jsonText.data(using: .utf8),
+           let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let fans = root["fans"] as? [[String: Any]] {
+            return max(1, fans.count)
+        }
+
+        var highestIndex = -1
+        for line in text.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("Fan "), let colon = trimmed.firstIndex(of: ":") else { continue }
+            let indexText = trimmed[trimmed.index(trimmed.startIndex, offsetBy: 4)..<colon]
+            if let index = Int(indexText) {
+                highestIndex = max(highestIndex, index)
+            }
+        }
+        return max(1, highestIndex + 1)
+    }
+
     nonisolated private static func parseJSONTemperatures(_ text: String) -> Temperatures? {
         guard let jsonText = jsonSubstring(from: text),
               let data = jsonText.data(using: .utf8),
@@ -491,6 +513,7 @@ struct MenuContentView: View {
             Picker("Mode", selection: $controller.fanMode) {
                 ForEach(FanMode.allCases) { mode in
                     Text(mode.rawValue).tag(mode)
+                        .disabled(mode == .independent && controller.availableFanCount < 2)
                 }
             }
             .pickerStyle(.segmented)
@@ -509,11 +532,18 @@ struct MenuContentView: View {
                 manualRPMRow(title: "Fan 0 RPM", rpmText: $controller.manualFan0RPMText) {
                     controller.applyManualFan0RPM()
                 }
-                presetRow(title: "Fan 1") { preset in
-                    controller.applyFan1Preset(preset)
-                }
-                manualRPMRow(title: "Fan 1 RPM", rpmText: $controller.manualFan1RPMText) {
-                    controller.applyManualFan1RPM()
+                if controller.availableFanCount > 1 {
+                    presetRow(title: "Fan 1") { preset in
+                        controller.applyFan1Preset(preset)
+                    }
+                    manualRPMRow(title: "Fan 1 RPM", rpmText: $controller.manualFan1RPMText) {
+                        controller.applyManualFan1RPM()
+                    }
+                } else {
+                    Text("Fan 1 was not detected by smctl on this Mac.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
