@@ -72,7 +72,7 @@ final class FanController: ObservableObject {
     @Published var manualRPMText = "2500"
     @Published var manualFan0RPMText = "2500"
     @Published var manualFan1RPMText = "2500"
-    @Published var availableFanCount = 1
+    @Published var availableFanCount = 0
     @Published var temperatures = Temperatures()
     @Published var rulesEnabled = false
     @Published var gpuRuleEnabled = true
@@ -189,7 +189,9 @@ final class FanController: ObservableObject {
 
             DispatchQueue.main.async {
                 self.temperatures = temps
-                self.availableFanCount = Self.parseFanCount(joined)
+                if !joined.isEmpty {
+                    self.availableFanCount = Self.parseFanCount(joined)
+                }
                 self.menuTitle = temps.menuTitle
                 if !joined.isEmpty {
                     self.statusText = Self.formatTemps(temps) + "\n\n" + Self.truncate(joined, limit: 4000)
@@ -510,13 +512,23 @@ struct MenuContentView: View {
 
     private var presets: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Picker("Mode", selection: $controller.fanMode) {
-                ForEach(FanMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
-                        .disabled(mode == .independent && controller.availableFanCount < 2)
+            HStack(spacing: 8) {
+                modeButton("Sync both fans", selected: controller.fanMode == .synced) {
+                    controller.fanMode = .synced
+                }
+                modeButton(
+                    "Independent",
+                    selected: controller.fanMode == .independent,
+                    disabled: controller.availableFanCount > 0 && controller.availableFanCount < 2
+                ) {
+                    controller.fanMode = .independent
                 }
             }
-            .pickerStyle(.segmented)
+
+            Text(fanAvailabilityText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             if controller.fanMode == .synced {
                 presetRow(title: "Both fans") { preset in
@@ -569,6 +581,35 @@ struct MenuContentView: View {
                     .disabled(controller.isRunning)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func modeButton(
+        _ title: String,
+        selected: Bool,
+        disabled: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        if selected {
+            Button(title, action: action)
+                .buttonStyle(.borderedProminent)
+                .disabled(disabled)
+        } else {
+            Button(title, action: action)
+                .buttonStyle(.bordered)
+                .disabled(disabled)
+        }
+    }
+
+    private var fanAvailabilityText: String {
+        switch controller.availableFanCount {
+        case 0:
+            return "Checking available fans..."
+        case 1:
+            return "1 fan detected. Fan 1 controls are unavailable on this Mac."
+        default:
+            return "\(controller.availableFanCount) fans detected."
         }
     }
 
