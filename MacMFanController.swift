@@ -530,34 +530,45 @@ struct MenuContentView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if controller.fanMode == .synced {
-                presetRow(title: "Both fans") { preset in
-                    controller.applySyncedPreset(preset)
-                }
-                manualRPMRow(title: "Manual RPM", rpmText: $controller.manualRPMText) {
-                    controller.applyManualSyncedRPM()
-                }
-            } else {
-                presetRow(title: "Fan 0") { preset in
-                    controller.applyFan0Preset(preset)
-                }
-                manualRPMRow(title: "Fan 0 RPM", rpmText: $controller.manualFan0RPMText) {
-                    controller.applyManualFan0RPM()
-                }
-                if controller.availableFanCount > 1 {
-                    presetRow(title: "Fan 1") { preset in
-                        controller.applyFan1Preset(preset)
+            ZStack(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 10) {
+                    presetRow(title: "Both fans") { preset in
+                        controller.applySyncedPreset(preset)
                     }
-                    manualRPMRow(title: "Fan 1 RPM", rpmText: $controller.manualFan1RPMText) {
-                        controller.applyManualFan1RPM()
+                    manualRPMRow(title: "Manual RPM", rpmText: $controller.manualRPMText) {
+                        controller.applyManualSyncedRPM()
                     }
-                } else {
-                    Text("Fan 1 was not detected by smctl on this Mac.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .opacity(controller.fanMode == .synced ? 1 : 0)
+                .allowsHitTesting(controller.fanMode == .synced)
+                .accessibilityHidden(controller.fanMode != .synced)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    presetRow(title: "Fan 0") { preset in
+                        controller.applyFan0Preset(preset)
+                    }
+                    manualRPMRow(title: "Fan 0 RPM", rpmText: $controller.manualFan0RPMText) {
+                        controller.applyManualFan0RPM()
+                    }
+                    if controller.availableFanCount > 1 {
+                        presetRow(title: "Fan 1") { preset in
+                            controller.applyFan1Preset(preset)
+                        }
+                        manualRPMRow(title: "Fan 1 RPM", rpmText: $controller.manualFan1RPMText) {
+                            controller.applyManualFan1RPM()
+                        }
+                    } else {
+                        Text("Fan 1 was not detected by smctl on this Mac.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .opacity(controller.fanMode == .independent ? 1 : 0)
+                .allowsHitTesting(controller.fanMode == .independent)
+                .accessibilityHidden(controller.fanMode != .independent)
             }
+            .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
 
             Button("Reset to Auto") {
                 controller.restoreAuto()
