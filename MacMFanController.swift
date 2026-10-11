@@ -456,21 +456,24 @@ struct MenuContentView: View {
     @EnvironmentObject private var controller: FanController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
-            Divider()
-            presets
-            Divider()
-            temperatures
-            Divider()
-            rules
-            Divider()
-            status
-            Divider()
-            footer
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                header
+                Divider()
+                presets
+                Divider()
+                temperatures
+                Divider()
+                rules
+                Divider()
+                status
+                Divider()
+                footer
+            }
+            .padding(14)
         }
-        .padding(14)
-        .frame(width: 360)
+        .frame(width: 360, height: 640)
+        .scrollIndicators(.visible)
     }
 
     private var header: some View {
