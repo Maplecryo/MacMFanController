@@ -43,7 +43,7 @@ smctl sensors
 
 ## Running
 
-For the easiest setup, download the project folder or release archive, keep `Install.command` next to `MacMFanController.app`, and double-click `Install.command`. It copies the app to `/Applications`, installs the `smctl` backend when Homebrew is already installed, configures its service, and launches the app.
+For the easiest setup, download a release archive, keep `Install.command` next to `MacMFanController.app`, and double-click `Install.command`. It copies the app to `/Applications`, installs the `smctl` backend when Homebrew is already installed, configures its service, and launches the app.
 
 If Homebrew is not installed, the installer opens the official Homebrew website. Install Homebrew, then double-click `Install.command` again.
 
@@ -88,7 +88,7 @@ From this folder:
 ./build.sh
 ```
 
-The script builds the arm64 executable, removes Finder metadata that can block signing, and applies an ad-hoc signature for local use. A public distribution should replace that signature with the distributor's Developer ID signing and notarization process.
+The script builds the arm64 executable, removes Finder metadata that can block signing, and applies an ad-hoc signature for local use. The checked-in app bundle is suitable for development and testing. A public release should use Developer ID signing and notarization, then publish the resulting archive as a GitHub Release.
 
 The app bundle contains the executable at:
 
@@ -100,6 +100,7 @@ Run the rule logic tests:
 
 ```bash
 CLANG_MODULE_CACHE_PATH=/tmp swift Tests/RuleLogicTests.swift
+CLANG_MODULE_CACHE_PATH=/tmp swift Tests/AutoRuleTests.swift
 ```
 
 ## Safety

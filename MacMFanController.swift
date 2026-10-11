@@ -90,7 +90,7 @@ final class FanController: ObservableObject {
     @Published var showQuietModeConfirm = false
 
     private let smctlPath: String?
-    private let worker = DispatchQueue(label: "local.codex.MacM5FanController.smctl", qos: .userInitiated)
+    private let worker = DispatchQueue(label: "com.maplecryo.MacMFanController.smctl", qos: .userInitiated)
     private let outputLimit = 64 * 1024
     private var pollTimer: Timer?
     private var lastRulePreset: FanPreset?

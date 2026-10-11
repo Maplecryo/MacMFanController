@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0
+## 1.0.0 - 2026-10-11
 
 - Added macOS menu bar fan control for Apple Silicon Macs through `smctl`.
 - Added synced and independent fan controls.
