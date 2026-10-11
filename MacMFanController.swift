@@ -494,9 +494,11 @@ struct MenuContentView: View {
                 Divider()
                 footer
             }
-            .padding(14)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 360, height: 640)
+        .frame(width: 390, height: 640)
         .scrollIndicators(.visible)
     }
 
