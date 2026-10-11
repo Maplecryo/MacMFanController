@@ -10,7 +10,6 @@ This app supports Apple Silicon Macs (M-series chips). Intel Mac support is not 
 - Fan presets: `20%`, `40%`, `50%`, `80%`, and `MAX`.
 - Typed manual RPM controls for synced fans or independent fan `0` / fan `1` control.
 - One-click `Reset to Auto`.
-- Confirmed manual mode that pauses this app's auto-trigger rules.
 - Live polling through `smctl sensors`.
 - Temperature display for:
   - CPU Die, from keys such as `Tp0D` or `TC0D`
@@ -64,8 +63,6 @@ The app appears as a fan item in the macOS menu bar.
 `Independent` exposes separate controls for fan `0` and fan `1`. If your Mac only has one fan, fan `1` commands may fail or be ignored by `smctl`.
 
 Manual RPM values are typed directly and clamped to `1200` through `7000` when applied.
-
-`Manual fan override` temporarily pauses this app's automatic fan rules after an inline confirmation. It does not turn off the `Auto-trigger rules` setting or erase its configured rules; it only prevents them from applying while the override is active. Manual fan settings remain available, and macOS or firmware thermal protection remains active.
 
 ## Auto Rules
 

@@ -86,8 +86,6 @@ final class FanController: ObservableObject {
     @Published var cpuRuleRPM = ""
     @Published var lastRuleText = "No rule triggered yet."
     @Published var menuTitle = "Fan"
-    @Published var quietManualMode = false
-    @Published var showQuietModeConfirm = false
 
     private let smctlPath: String?
     private let worker = DispatchQueue(label: "com.maplecryo.MacMFanController.smctl", qos: .userInitiated)
@@ -159,7 +157,6 @@ final class FanController: ObservableObject {
 
     func restoreAuto() {
         runAsync(["fan", "profile", "auto"], label: "Restore Auto")
-        quietManualMode = false
         lastRulePreset = nil
         lastRuleRPM = nil
         lastRuleText = "Automatic fan control restored."
@@ -204,21 +201,6 @@ final class FanController: ObservableObject {
         NSApplication.shared.terminate(nil)
     }
 
-    func requestQuietManualMode(_ enabled: Bool) {
-        if enabled {
-            showQuietModeConfirm = true
-        } else {
-            quietManualMode = false
-            lastRuleText = "App auto-rules resumed."
-        }
-    }
-
-    func confirmQuietManualMode() {
-        quietManualMode = true
-        showQuietModeConfirm = false
-        lastRuleText = "Manual fan override active. App auto-rules are paused."
-    }
-
     private func runFanCommand(preset: FanPreset, fan: String, reason: String) {
         runRPMCommand(rpm: preset.rpm, fan: fan, reason: "\(reason): \(preset.rawValue)")
     }
@@ -240,10 +222,6 @@ final class FanController: ObservableObject {
     }
 
     private func evaluateRules() {
-        guard !quietManualMode else {
-            lastRuleText = "Manual fan override active. App auto-rules are paused."
-            return
-        }
         guard rulesEnabled else { return }
         syncRuleThresholdsFromText()
 
@@ -542,40 +520,6 @@ struct MenuContentView: View {
             .buttonStyle(.borderedProminent)
             .disabled(controller.isRunning)
 
-            Toggle(
-                "Manual fan override",
-                isOn: Binding(
-                    get: { controller.quietManualMode },
-                    set: { controller.requestQuietManualMode($0) }
-                )
-            )
-            Text("Temporarily stops this app from applying automatic fan rules. Your Auto-trigger rules setting and rule values stay saved. macOS and firmware thermal protection remain active.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            if controller.showQuietModeConfirm {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Enable manual fan override?")
-                        .font(.caption.weight(.semibold))
-                    Text("This pauses this app's rules without changing your Auto-trigger rules setting. macOS and firmware thermal protection remain active.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack {
-                        Button("Cancel") {
-                            controller.showQuietModeConfirm = false
-                        }
-                        Button("Confirm pause") {
-                            controller.confirmQuietManualMode()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                }
-                .padding(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
         }
     }
 
