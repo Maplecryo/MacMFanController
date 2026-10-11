@@ -65,7 +65,7 @@ The app appears as a fan item in the macOS menu bar.
 
 Manual RPM values are typed directly and clamped to `1200` through `7000` when applied.
 
-`Pause app auto-rules` pauses this app's auto-trigger rules after an inline confirmation. Manual fan settings remain available. It does not disable macOS or firmware thermal protection.
+`Manual fan override` temporarily pauses this app's automatic fan rules after an inline confirmation. It does not turn off the `Auto-trigger rules` setting or erase its configured rules; it only prevents them from applying while the override is active. Manual fan settings remain available, and macOS or firmware thermal protection remains active.
 
 ## Auto Rules
 
