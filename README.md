@@ -2,7 +2,8 @@
 
 Mac M Fan Controller is a small macOS menu bar app for controlling fans on Apple Silicon Macs through [`smctl`](https://github.com/leaperone/smctl). It provides quick fan presets, manual RPM control, live temperature monitoring, and simple auto-trigger rules for GPU and CPU temperatures.
 
-This only works on silicon macs(M chips) and may not work on intel series macs.
+This app supports Apple Silicon Macs (M-series chips). Intel Mac support is not included.
+
 ## Features
 
 - Menu bar app with no Dock window.
@@ -27,7 +28,7 @@ This only works on silicon macs(M chips) and may not work on intel series macs.
 - Xcode command line tools if rebuilding from source
 - `smctl` installed and configured
 
-Install the backend through terminal:
+Install the backend through Terminal:
 
 ```bash
 brew install leaperone/smctl/smctl
