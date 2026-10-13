@@ -73,6 +73,8 @@ final class FanController: ObservableObject {
     @Published var manualRPMText = "2500"
     @Published var manualFan0RPMText = "2500"
     @Published var manualFan1RPMText = "2500"
+    @Published var fanPresets: [FanPreset] = [.p40, .p40]
+    @Published var manualFanRPMTexts: [String] = ["2500", "2500"]
     @Published var availableFanCount = 0
     @Published var hasCheckedFanCount = false
     @Published var temperatures = Temperatures()
@@ -137,6 +139,13 @@ final class FanController: ObservableObject {
         runFanCommand(preset: preset, fan: "1", reason: "Manual fan 1 preset")
     }
 
+    func applyFanPreset(_ preset: FanPreset, fan: Int) {
+        ensureFanState(count: max(availableFanCount, fan + 1))
+        fanMode = .independent
+        fanPresets[fan] = preset
+        runFanCommand(preset: preset, fan: "\(fan)", reason: "Manual fan \(fan) preset")
+    }
+
     func applyManualSyncedRPM() {
         fanMode = .synced
         let rpm = Self.clampedRPM(manualRPMText, fallback: 2500)
@@ -156,6 +165,15 @@ final class FanController: ObservableObject {
         let rpm = Self.clampedRPM(manualFan1RPMText, fallback: 2500)
         manualFan1RPMText = "\(rpm)"
         runRPMCommand(rpm: rpm, fan: "1", reason: "Manual fan 1 RPM")
+    }
+
+    func applyManualFanRPM(_ text: String, fan: Int) -> String {
+        ensureFanState(count: max(availableFanCount, fan + 1))
+        fanMode = .independent
+        let rpm = Self.clampedRPM(text, fallback: 2500)
+        manualFanRPMTexts[fan] = "\(rpm)"
+        runRPMCommand(rpm: rpm, fan: "\(fan)", reason: "Manual fan \(fan) RPM")
+        return "\(rpm)"
     }
 
     func restoreAuto() {
@@ -198,6 +216,7 @@ final class FanController: ObservableObject {
                 if !joined.isEmpty {
                     self.availableFanCount = Self.parseFanCount(joined)
                     self.hasCheckedFanCount = true
+                    self.ensureFanState(count: self.availableFanCount)
                     if self.availableFanCount < 2 && self.fanMode == .independent {
                         self.fanMode = .synced
                     }
@@ -233,6 +252,15 @@ final class FanController: ObservableObject {
 
     var fanControlsUnavailable: Bool {
         hasCheckedFanCount && availableFanCount == 0
+    }
+
+    private func ensureFanState(count: Int) {
+        while fanPresets.count < count {
+            fanPresets.append(.p40)
+        }
+        while manualFanRPMTexts.count < count {
+            manualFanRPMTexts.append("2500")
+        }
     }
 
     nonisolated static func clampedRPM(_ text: String, fallback: Int) -> Int {
@@ -556,7 +584,11 @@ struct MenuContentView: View {
 
             ZStack(alignment: .topLeading) {
                 VStack(alignment: .leading, spacing: 10) {
-                    presetRow(title: "Both fans") { preset in
+                    presetRow(
+                        title: controller.availableFanCount == 1
+                            ? "Detected fan"
+                            : (controller.availableFanCount > 1 ? "All \(controller.availableFanCount) fans" : "Fans")
+                    ) { preset in
                         controller.applySyncedPreset(preset)
                     }
                     manualRPMRow(title: "Manual RPM", rpmText: $controller.manualRPMText) {
@@ -568,23 +600,19 @@ struct MenuContentView: View {
                 .accessibilityHidden(controller.fanMode != .synced)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    presetRow(title: "Fan 0") { preset in
-                        controller.applyFan0Preset(preset)
-                    }
-                    manualRPMRow(title: "Fan 0 RPM", rpmText: $controller.manualFan0RPMText) {
-                        controller.applyManualFan0RPM()
-                    }
-                    if controller.availableFanCount > 1 {
-                        presetRow(title: "Fan 1") { preset in
-                            controller.applyFan1Preset(preset)
-                        }
-                        manualRPMRow(title: "Fan 1 RPM", rpmText: $controller.manualFan1RPMText) {
-                            controller.applyManualFan1RPM()
+                    if controller.availableFanCount > 0 {
+                        ForEach(0..<controller.availableFanCount, id: \.self) { fan in
+                            presetRow(title: "Fan \(fan)") { preset in
+                                controller.applyFanPreset(preset, fan: fan)
+                            }
+                            manualRPMRow(title: "Fan \(fan) RPM", rpmText: fanRPMBinding(fan)) {
+                                _ = controller.applyManualFanRPM(controller.manualFanRPMTexts[fan], fan: fan)
+                            }
                         }
                     } else {
                         Text(controller.fanControlsUnavailable
                             ? "Fan controls are unavailable: no controllable fans were detected."
-                            : "Fan 1 controls are unavailable: only one fan was detected.")
+                            : "No fan controls are available until detection completes.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -596,9 +624,9 @@ struct MenuContentView: View {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .frame(
-                height: controller.fanMode == .synced
+                minHeight: controller.fanMode == .synced
                     ? 78
-                    : (controller.availableFanCount > 1 ? 160 : 130),
+                    : max(80, CGFloat(controller.availableFanCount) * 78),
                 alignment: .topLeading
             )
 
@@ -656,7 +684,7 @@ struct MenuContentView: View {
         case 0:
             return "No controllable fans detected. Fan controls and Independent mode are unavailable."
         case 1:
-            return "1 fan detected. Independent mode is unavailable; use Sync both fans."
+            return "1 fan detected. Independent mode is unavailable; use Sync mode."
         default:
             return "\(controller.availableFanCount) fans detected."
         }
@@ -680,6 +708,13 @@ struct MenuContentView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 90, alignment: .leading)
         }
+    }
+
+    private func fanRPMBinding(_ fan: Int) -> Binding<String> {
+        Binding(
+            get: { controller.manualFanRPMTexts[fan] },
+            set: { controller.manualFanRPMTexts[fan] = $0 }
+        )
     }
 
     private var temperatures: some View {
