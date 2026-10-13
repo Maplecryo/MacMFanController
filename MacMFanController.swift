@@ -562,7 +562,13 @@ struct MenuContentView: View {
                 .allowsHitTesting(controller.fanMode == .independent)
                 .accessibilityHidden(controller.fanMode != .independent)
             }
-            .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(
+                height: controller.fanMode == .synced
+                    ? 78
+                    : (controller.availableFanCount > 1 ? 160 : 130),
+                alignment: .topLeading
+            )
 
             Button("Reset to Auto") {
                 controller.restoreAuto()
