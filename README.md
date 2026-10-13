@@ -64,6 +64,8 @@ The app appears as a fan item in the macOS menu bar.
 
 Manual RPM values are typed directly and clamped to `1200` through `7000` when applied.
 
+To preview the two-fan interface without changing hardware, enable `Preview two-fan controls` in the menu. Then choose `Independent` to test both fan panels. Commands are simulated and appear in the status area while preview mode is active.
+
 ## Auto Rules
 
 Auto rules are evaluated every 5 seconds after fresh sensor data is read.

@@ -74,6 +74,7 @@ final class FanController: ObservableObject {
     @Published var manualFan0RPMText = "2500"
     @Published var manualFan1RPMText = "2500"
     @Published var availableFanCount = 0
+    @Published var simulateTwoFanUI = false
     @Published var temperatures = Temperatures()
     @Published var rulesEnabled = false
     @Published var gpuRuleEnabled = true
@@ -95,6 +96,10 @@ final class FanController: ObservableObject {
     private var pollTimer: Timer?
     private var lastRulePreset: FanPreset?
     private var lastRuleRPM: Int?
+
+    var displayedFanCount: Int {
+        simulateTwoFanUI ? 2 : availableFanCount
+    }
 
     init() {
         let candidates = [
@@ -158,6 +163,13 @@ final class FanController: ObservableObject {
     }
 
     func restoreAuto() {
+        if simulateTwoFanUI {
+            statusText = "Preview only: Reset to Auto was not sent to smctl."
+            lastRulePreset = nil
+            lastRuleRPM = nil
+            lastRuleText = "Preview mode active; no hardware command sent."
+            return
+        }
         runAsync(["fan", "profile", "auto"], label: "Restore Auto")
         lastRulePreset = nil
         lastRuleRPM = nil
@@ -211,6 +223,10 @@ final class FanController: ObservableObject {
     }
 
     private func runRPMCommand(rpm: Int, fan: String, reason: String) {
+        if simulateTwoFanUI {
+            statusText = "Preview only: \(reason)\nWould set \(fan == "all" ? "both fans" : "fan \(fan)") to \(rpm) RPM."
+            return
+        }
         var args = ["fan", "set", "\(rpm)"]
         if fan != "all" {
             args.append(contentsOf: ["--fan", fan])
@@ -526,7 +542,7 @@ struct MenuContentView: View {
                 modeButton(
                     "Independent",
                     selected: controller.fanMode == .independent,
-                    disabled: controller.availableFanCount > 0 && controller.availableFanCount < 2
+                    disabled: controller.displayedFanCount > 0 && controller.displayedFanCount < 2
                 ) {
                     controller.fanMode = .independent
                 }
@@ -536,6 +552,11 @@ struct MenuContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Toggle("Preview two-fan controls", isOn: $controller.simulateTwoFanUI)
+                .toggleStyle(.checkbox)
+                .font(.caption)
+                .help("Shows Fan 0 and Fan 1 controls without sending fan commands")
 
             ZStack(alignment: .topLeading) {
                 VStack(alignment: .leading, spacing: 10) {
@@ -557,7 +578,7 @@ struct MenuContentView: View {
                     manualRPMRow(title: "Fan 0 RPM", rpmText: $controller.manualFan0RPMText) {
                         controller.applyManualFan0RPM()
                     }
-                    if controller.availableFanCount > 1 {
+                    if controller.displayedFanCount > 1 {
                         presetRow(title: "Fan 1") { preset in
                             controller.applyFan1Preset(preset)
                         }
@@ -579,7 +600,7 @@ struct MenuContentView: View {
             .frame(
                 height: controller.fanMode == .synced
                     ? 78
-                    : (controller.availableFanCount > 1 ? 160 : 130),
+                    : (controller.displayedFanCount > 1 ? 160 : 130),
                 alignment: .topLeading
             )
 
@@ -630,6 +651,9 @@ struct MenuContentView: View {
     }
 
     private var fanAvailabilityText: String {
+        if controller.simulateTwoFanUI {
+            return "Preview mode: showing two fan controls. Hardware commands are disabled."
+        }
         switch controller.availableFanCount {
         case 0:
             return "Checking available fans..."
