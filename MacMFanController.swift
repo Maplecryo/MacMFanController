@@ -565,7 +565,7 @@ struct MenuContentView: View {
                             controller.applyManualFan1RPM()
                         }
                     } else {
-                        Text("Fan 1 was not detected by smctl on this Mac.")
+                        Text("Fan 1 controls are unavailable: only one fan was detected.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -634,7 +634,7 @@ struct MenuContentView: View {
         case 0:
             return "Checking available fans..."
         case 1:
-            return "1 fan detected. Fan 1 controls are unavailable on this Mac."
+            return "1 fan detected. Independent mode is unavailable; use Sync both fans."
         default:
             return "\(controller.availableFanCount) fans detected."
         }
