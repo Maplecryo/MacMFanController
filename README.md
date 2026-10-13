@@ -58,7 +58,7 @@ The app appears as a fan item in the macOS menu bar.
 
 ## Controls
 
-`Sync both fans` applies a preset or manual RPM to all available fans.
+The synced mode label adapts to the hardware: it says `Sync fan` with one fan and `Sync fans` with two or more. It applies a preset or manual RPM to all available fans.
 
 `Independent` exposes separate controls for every detected fan, including Fan 2 and higher on Macs with more than two fans. Macs with one physical fan show a notice that Independent mode is unavailable and keep the usable fan controls visible. Fanless Macs show that no controllable fans were detected and disable fan commands.
 

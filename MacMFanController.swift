@@ -565,7 +565,7 @@ struct MenuContentView: View {
     private var presets: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                modeButton("Sync both fans", selected: controller.fanMode == .synced) {
+                modeButton(syncModeTitle, selected: controller.fanMode == .synced) {
                     controller.fanMode = .synced
                 }
                 modeButton(
@@ -585,9 +585,7 @@ struct MenuContentView: View {
             ZStack(alignment: .topLeading) {
                 VStack(alignment: .leading, spacing: 10) {
                     presetRow(
-                        title: controller.availableFanCount == 1
-                            ? "Detected fan"
-                            : (controller.availableFanCount > 1 ? "All \(controller.availableFanCount) fans" : "Fans")
+                        title: syncTargetTitle
                     ) { preset in
                         controller.applySyncedPreset(preset)
                     }
@@ -687,6 +685,33 @@ struct MenuContentView: View {
             return "1 fan detected. Independent mode is unavailable; use Sync mode."
         default:
             return "\(controller.availableFanCount) fans detected."
+        }
+    }
+
+    private var syncModeTitle: String {
+        guard controller.hasCheckedFanCount else {
+            return "Sync fans"
+        }
+        switch controller.availableFanCount {
+        case 0:
+            return "Sync fans"
+        case 1:
+            return "Sync fan"
+        default:
+            return "Sync fans"
+        }
+    }
+
+    private var syncTargetTitle: String {
+        switch controller.availableFanCount {
+        case 1:
+            return "Detected fan"
+        case 2:
+            return "Both fans"
+        case let count where count > 2:
+            return "All \(count) fans"
+        default:
+            return "Fans"
         }
     }
 
