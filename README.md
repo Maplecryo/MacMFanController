@@ -17,7 +17,8 @@ This app supports Apple Silicon Macs (M-series chips). Intel Mac support is not 
 - Auto-trigger rules for GPU and CPU Die:
   - enable or disable each rule
   - edit the trigger temperature with the `Temp` field
-  - type the exact output RPM directly
+  - choose a percentage preset
+  - optionally enter an exact direct RPM override
 
 ## Requirements
 
@@ -71,9 +72,10 @@ Each rule has:
 
 - an enable switch
 - an editable `Temp` field
-- a direct `Output RPM` field, clamped to `1200` through `7000`
+- a percentage preset dropdown
+- an optional `Direct RPM` override field, clamped to `1200` through `7000`
 
-The app uses the configured RPM when the rule triggers. Repeated triggers at the same output are ignored so the app does not keep sending the same fan command every poll.
+If the Direct RPM field is blank, the rule uses the selected percentage preset. If it contains a value, the direct RPM overrides the preset. Repeated triggers at the same output are ignored so the app does not keep sending the same fan command every poll.
 
 ## Building
 
