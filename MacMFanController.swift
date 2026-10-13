@@ -653,6 +653,10 @@ struct MenuContentView: View {
                 action()
             }
             .disabled(controller.isRunning)
+            Text("1200-7000 RPM")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(width: 90, alignment: .leading)
         }
     }
 
