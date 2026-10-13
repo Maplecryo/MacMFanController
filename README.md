@@ -60,7 +60,7 @@ The app appears as a fan item in the macOS menu bar.
 
 `Sync both fans` applies a preset or manual RPM to all available fans.
 
-`Independent` exposes separate controls for fan `0` and fan `1` when both are detected. Macs with one physical fan show a notice that Independent mode is unavailable, keep the usable fan `0` controls visible, and identify the missing fan `1` controls.
+`Independent` exposes separate controls for fan `0` and fan `1` when both are detected. Macs with one physical fan show a notice that Independent mode is unavailable, keep the usable fan `0` controls visible, and identify the missing fan `1` controls. Fanless Macs show that no controllable fans were detected and disable fan commands.
 
 Manual RPM values are typed directly and clamped to `1200` through `7000` when applied.
 

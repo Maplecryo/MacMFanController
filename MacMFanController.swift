@@ -74,6 +74,7 @@ final class FanController: ObservableObject {
     @Published var manualFan0RPMText = "2500"
     @Published var manualFan1RPMText = "2500"
     @Published var availableFanCount = 0
+    @Published var hasCheckedFanCount = false
     @Published var temperatures = Temperatures()
     @Published var rulesEnabled = false
     @Published var gpuRuleEnabled = true
@@ -158,6 +159,10 @@ final class FanController: ObservableObject {
     }
 
     func restoreAuto() {
+        guard !fanControlsUnavailable else {
+            statusText = "No controllable fans were detected; Reset to Auto was not sent."
+            return
+        }
         runAsync(["fan", "profile", "auto"], label: "Restore Auto")
         lastRulePreset = nil
         lastRuleRPM = nil
@@ -192,6 +197,10 @@ final class FanController: ObservableObject {
                 self.temperatures = temps
                 if !joined.isEmpty {
                     self.availableFanCount = Self.parseFanCount(joined)
+                    self.hasCheckedFanCount = true
+                    if self.availableFanCount < 2 && self.fanMode == .independent {
+                        self.fanMode = .synced
+                    }
                 }
                 self.menuTitle = temps.menuTitle
                 if !joined.isEmpty {
@@ -211,11 +220,19 @@ final class FanController: ObservableObject {
     }
 
     private func runRPMCommand(rpm: Int, fan: String, reason: String) {
+        guard !fanControlsUnavailable else {
+            statusText = "No controllable fans were detected; fan command was not sent."
+            return
+        }
         var args = ["fan", "set", "\(rpm)"]
         if fan != "all" {
             args.append(contentsOf: ["--fan", fan])
         }
         runAsync(args, label: "\(reason) (\(rpm) RPM)")
+    }
+
+    var fanControlsUnavailable: Bool {
+        hasCheckedFanCount && availableFanCount == 0
     }
 
     nonisolated static func clampedRPM(_ text: String, fallback: Int) -> Int {
@@ -399,7 +416,7 @@ final class FanController: ObservableObject {
            let data = jsonText.data(using: .utf8),
            let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let fans = root["fans"] as? [[String: Any]] {
-            return max(1, fans.count)
+            return fans.count
         }
 
         var highestIndex = -1
@@ -411,7 +428,7 @@ final class FanController: ObservableObject {
                 highestIndex = max(highestIndex, index)
             }
         }
-        return max(1, highestIndex + 1)
+        return max(0, highestIndex + 1)
     }
 
     nonisolated private static func parseJSONTemperatures(_ text: String) -> Temperatures? {
@@ -526,7 +543,7 @@ struct MenuContentView: View {
                 modeButton(
                     "Independent",
                     selected: controller.fanMode == .independent,
-                    disabled: controller.availableFanCount > 0 && controller.availableFanCount < 2
+                    disabled: !controller.hasCheckedFanCount || controller.availableFanCount < 2
                 ) {
                     controller.fanMode = .independent
                 }
@@ -565,7 +582,9 @@ struct MenuContentView: View {
                             controller.applyManualFan1RPM()
                         }
                     } else {
-                        Text("Fan 1 controls are unavailable: only one fan was detected.")
+                        Text(controller.fanControlsUnavailable
+                            ? "Fan controls are unavailable: no controllable fans were detected."
+                            : "Fan 1 controls are unavailable: only one fan was detected.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -603,7 +622,7 @@ struct MenuContentView: View {
                         action(preset)
                     }
                     .frame(maxWidth: .infinity)
-                    .disabled(controller.isRunning)
+                    .disabled(controller.isRunning || !controller.hasCheckedFanCount || controller.fanControlsUnavailable)
                 }
             }
         }
@@ -630,9 +649,12 @@ struct MenuContentView: View {
     }
 
     private var fanAvailabilityText: String {
+        guard controller.hasCheckedFanCount else {
+            return "Checking available fans..."
+        }
         switch controller.availableFanCount {
         case 0:
-            return "Checking available fans..."
+            return "No controllable fans detected. Fan controls and Independent mode are unavailable."
         case 1:
             return "1 fan detected. Independent mode is unavailable; use Sync both fans."
         default:
@@ -652,7 +674,7 @@ struct MenuContentView: View {
             Button("Apply") {
                 action()
             }
-            .disabled(controller.isRunning)
+            .disabled(controller.isRunning || !controller.hasCheckedFanCount || controller.fanControlsUnavailable)
             Text("1200-7000 RPM")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
